@@ -56,6 +56,8 @@ Examples:
     glimpse-review annotate "h2:nth-of-type(2)" "Should this section move earlier?"
     glimpse-review annotate "#approval-note" "Can you confirm this wording?"
 
+Multiple `annotate` calls accumulate, so you can drop several questions on the same review page in one pass and the user will see them all at once.
+
 Prefer `annotate` over raw JavaScript when the goal is simply to ask about one element.
 
 ### Show

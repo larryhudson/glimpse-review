@@ -131,7 +131,7 @@ Attach a floating annotation to an element:
 glimpse-review annotate "#note" "Can you explain this choice?"
 ```
 
-Annotations highlight the selected element, scroll it into view, and place a floating comment next to it. They are positioned with Floating UI and stay aligned across scroll, resize, and layout changes.
+Annotations highlight the selected element, scroll it into view, and place a floating comment next to it. They are positioned with Floating UI and stay aligned across scroll, resize, and layout changes. Multiple `annotate` calls accumulate — each gets its own card with its own reply form, and a `Hide comments` toggle in the corner can dismiss them all.
 
 Annotation boxes include a reply form. Submitting a reply prints JSON but does not close the review window:
 

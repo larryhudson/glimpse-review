@@ -10,7 +10,9 @@
     "annotations",
     "preact",
     "markdown",
-    "html"
+    "html",
+    "claude-code",
+    "claude-code-plugin"
   ],
   "author": "Larry Hudson",
   "license": "MIT",
