@@ -1,5 +1,8 @@
 # Glimpse Review CLI
 
+[![npm version](https://img.shields.io/npm/v/glimpse-review.svg)](https://www.npmjs.com/package/glimpse-review)
+[![license](https://img.shields.io/npm/l/glimpse-review.svg)](./LICENSE)
+
 A small TypeScript CLI experiment built on top of [`glimpseui`](https://github.com/HazAT/glimpse).
 
 The goal is to make agent/user interaction more contextual and lightweight. An agent can open a generated HTML explainer, review document, approval form, or small custom UI in a native Glimpse window, then receive structured feedback from the user without leaving the command flow.
@@ -23,6 +26,12 @@ npm install -g glimpse-review
 ```
 
 This installs the `glimpse-review` binary globally. Requires Node.js 20+.
+
+Or run it without installing:
+
+```bash
+npx glimpse-review --help
+```
 
 To install from source for development:
 
