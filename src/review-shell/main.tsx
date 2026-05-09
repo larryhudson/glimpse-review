@@ -33,6 +33,7 @@ declare global {
 }
 
 type AnnotationState = {
+  id: number;
   selector: string;
   text: string;
   element: { outerHTML: string } | null;
@@ -170,10 +171,134 @@ function contentWithReviewHelpers(html: string): string {
   return `${html}${helper}`;
 }
 
+function AnnotationCard({
+  annotation,
+  frame,
+  frameVersion,
+  onReply,
+  onDismiss,
+}: {
+  annotation: AnnotationState;
+  frame: HTMLIFrameElement | null;
+  frameVersion: number;
+  onReply: (id: number, reply: string) => void;
+  onDismiss: (id: number) => void;
+}) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const arrowRef = useRef<HTMLSpanElement>(null);
+  const [pos, setPos] = useState<FloatingPos | null>(null);
+
+  useEffect(() => {
+    if (!frame) return;
+    const target = frame.contentDocument?.querySelector(annotation.selector);
+    if (!target) {
+      onDismiss(annotation.id);
+      return;
+    }
+    target.classList.add('glimpse-review-highlight');
+    target.scrollIntoView({ block: 'center', behavior: 'instant' });
+
+    const card = cardRef.current;
+    const arrowEl = arrowRef.current;
+    if (!card || !arrowEl) return;
+
+    const reference = {
+      getBoundingClientRect() {
+        return shellRectForElement(frame, target);
+      },
+      contextElement: frame,
+    };
+
+    const update = () => {
+      computePosition(reference, card, {
+        placement: 'bottom-start',
+        strategy: 'fixed',
+        middleware: [
+          offset(12),
+          flip({ padding: 12 }),
+          shift({ padding: 12 }),
+          arrow({ element: arrowEl, padding: 12 }),
+        ],
+      }).then(({ x, y, placement, middlewareData }) => {
+        const { x: arrowX, y: arrowY } = middlewareData.arrow ?? {};
+        setPos({ x, y, placement, arrowX, arrowY });
+      });
+    };
+
+    const cleanupAuto = autoUpdate(reference, card, update, {
+      ancestorScroll: true,
+      ancestorResize: true,
+      elementResize: true,
+      layoutShift: true,
+    });
+    const cleanupFrame = subscribeFramePositionUpdates(frame, update);
+
+    update();
+    return () => {
+      cleanupAuto();
+      cleanupFrame();
+      target.classList.remove('glimpse-review-highlight');
+    };
+  }, [annotation.id, annotation.selector, frame, frameVersion]);
+
+  return (
+    <div
+      ref={cardRef}
+      className="glimpse-review-annotation"
+      role="note"
+      data-placement={pos?.placement}
+      style={{
+        left: `${pos?.x ?? 0}px`,
+        top: `${pos?.y ?? 0}px`,
+        opacity: pos ? 1 : 0,
+      }}
+    >
+      <span
+        ref={arrowRef}
+        className="glimpse-review-annotation-arrow"
+        aria-hidden="true"
+        style={{
+          left: pos?.arrowX != null ? `${pos.arrowX}px` : '',
+          top: pos?.arrowY != null ? `${pos.arrowY}px` : '',
+        }}
+      />
+      <p>{annotation.text}</p>
+      {annotation.replies.length > 0 && (
+        <ol className="glimpse-review-annotation-replies">
+          {annotation.replies.map((reply, index) => (
+            <li key={`${index}:${reply}`} className="glimpse-review-annotation-reply">
+              <strong>Reply {index + 1}</strong>
+              <span>{reply}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          const reply = new FormData(form).get('reply');
+          if (typeof reply !== 'string' || !reply.trim()) return;
+          window.glimpse.send({
+            type: 'annotation-reply',
+            selector: annotation.selector,
+            annotation: annotation.text,
+            reply,
+            submittedAt: new Date().toISOString(),
+          });
+          form.reset();
+          onReply(annotation.id, reply);
+        }}
+      >
+        <textarea name="reply" placeholder="Reply" />
+        <button type="submit">Reply</button>
+      </form>
+    </div>
+  );
+}
+
 function App() {
   const frameRef = useRef<HTMLIFrameElement>(null);
-  const annotationRef = useRef<HTMLDivElement>(null);
-  const annotationArrowRef = useRef<HTMLSpanElement>(null);
   const selectionButtonRef = useRef<HTMLButtonElement>(null);
   const selectionFormRef = useRef<HTMLDivElement>(null);
 
@@ -184,8 +309,7 @@ function App() {
   const [refreshVisible, setRefreshVisible] = useState(false);
   const [frameVersion, setFrameVersion] = useState(0);
   const [activeSelector, setActiveSelector] = useState<string | null>(null);
-  const [annotation, setAnnotation] = useState<AnnotationState | null>(null);
-  const [annotationPos, setAnnotationPos] = useState<FloatingPos | null>(null);
+  const [annotations, setAnnotations] = useState<AnnotationState[]>([]);
   const [selection, setSelection] = useState<SelectionState | null>(null);
   const [selectionButtonPos, setSelectionButtonPos] = useState<FloatingPos | null>(null);
   const [selectionFormPos, setSelectionFormPos] = useState<FloatingPos | null>(null);
@@ -194,7 +318,17 @@ function App() {
   const selectionEventCountRef = useRef(0);
   const selectionButtonPositionCountRef = useRef(0);
   const selectionFormPositionCountRef = useRef(0);
-  const annotationPositionCountRef = useRef(0);
+  const annotationIdRef = useRef(0);
+
+  const dismissAnnotation = (id: number) => {
+    setAnnotations((list) => list.filter((a) => a.id !== id));
+  };
+
+  const appendAnnotationReply = (id: number, reply: string) => {
+    setAnnotations((list) =>
+      list.map((a) => (a.id === id ? { ...a, replies: [...a.replies, reply] } : a))
+    );
+  };
 
   const commitContent = (html: string) => {
     debugLog('commitContent', { length: html.length });
@@ -227,7 +361,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    debugLog('__glimpseReview registered', { dirty, annotation: annotation?.selector });
+    debugLog('__glimpseReview registered', { dirty, annotationCount: annotations.length });
     window.__glimpseReview = {
       setContent: (html) => {
         commitContent(html);
@@ -251,24 +385,29 @@ function App() {
         const frame = frameRef.current;
         const target = frame?.contentDocument?.querySelector(selector);
         if (!frame || !target) return;
-        setActiveSelector(selector);
         setSelection(null);
         setSelectionCommentOpen(false);
         setCommentsHidden(false);
-        setAnnotation({
-          selector,
-          text,
-          element: elementReference(target),
-          replies: [],
-          rect: shellRectForElement(frame, target),
-        });
+        annotationIdRef.current += 1;
+        const id = annotationIdRef.current;
+        setAnnotations((list) => [
+          ...list,
+          {
+            id,
+            selector,
+            text,
+            element: elementReference(target),
+            replies: [],
+            rect: shellRectForElement(frame, target),
+          },
+        ]);
       },
     };
 
     return () => {
       delete window.__glimpseReview;
     };
-  }, [dirty, annotation?.selector]);
+  }, [dirty, annotations.length]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -365,93 +504,6 @@ function App() {
       frameCleanupRef.current = null;
     };
   }, []);
-
-  useEffect(() => {
-    const frame = frameRef.current;
-    if (!frame || !annotation || commentsHidden) {
-      debugLog('annotation positioning skipped', {
-        hasFrame: Boolean(frame),
-        hasAnnotation: Boolean(annotation),
-        commentsHidden,
-      });
-      setAnnotationPos(null);
-      return;
-    }
-
-    const target = frame.contentDocument?.querySelector(annotation.selector);
-    if (!target) {
-      setAnnotation(null);
-      setAnnotationPos(null);
-      return;
-    }
-
-    if (!annotationRef.current || !annotationArrowRef.current) {
-      debugLog('annotation refs missing', {
-        hasAnnotation: Boolean(annotationRef.current),
-        hasArrow: Boolean(annotationArrowRef.current),
-      });
-      return;
-    }
-
-    const update = () => {
-      annotationPositionCountRef.current += 1;
-      debugLog('annotation position update', {
-        count: annotationPositionCountRef.current,
-        selector: annotation.selector,
-      });
-      const reference = {
-        getBoundingClientRect() {
-          return shellRectForElement(frame, target);
-        },
-        contextElement: frame,
-      };
-
-      computePosition(reference, annotationRef.current!, {
-        placement: 'bottom-start',
-        strategy: 'fixed',
-        middleware: [
-          offset(12),
-          flip({ padding: 12 }),
-          shift({ padding: 12 }),
-          arrow({ element: annotationArrowRef.current!, padding: 12 }),
-        ],
-      }).then(({ x, y, placement, middlewareData }) => {
-        debugLog('annotation positioned', { x, y, placement });
-        const { x: arrowX, y: arrowY } = middlewareData.arrow ?? {};
-        setAnnotationPos({
-          x,
-          y,
-          placement,
-          arrowX,
-          arrowY,
-        });
-      });
-    };
-
-    const cleanupAutoUpdate = autoUpdate(
-      {
-        getBoundingClientRect() {
-          return shellRectForElement(frame, target);
-        },
-        contextElement: frame,
-      },
-      annotationRef.current,
-      update,
-      {
-        ancestorScroll: true,
-        ancestorResize: true,
-        elementResize: true,
-        layoutShift: true,
-      }
-    );
-    const cleanupFrameUpdates = subscribeFramePositionUpdates(frame, update);
-
-    update();
-    return () => {
-      cleanupAutoUpdate();
-      cleanupFrameUpdates();
-    };
-  }, [annotation, commentsHidden, frameVersion]);
 
   useEffect(() => {
     if (!selection || selectionCommentOpen) {
@@ -582,7 +634,7 @@ function App() {
   }, [selection, selectionCommentOpen, frameVersion]);
 
   useEffect(() => {
-    if (!activeSelector || annotation) return;
+    if (!activeSelector) return;
 
     const frame = frameRef.current;
     const target = frame?.contentDocument?.querySelector(activeSelector);
@@ -594,7 +646,7 @@ function App() {
     target.classList.add('glimpse-review-highlight');
     target.scrollIntoView({ block: 'center', behavior: 'instant' });
     debugLog('highlight applied', { activeSelector });
-  }, [activeSelector, annotation, frameVersion]);
+  }, [activeSelector, frameVersion]);
 
   const handleRefresh = () => {
     if (!pendingHtml) return;
@@ -619,62 +671,17 @@ function App() {
         </div>
       )}
 
-      {annotation && !commentsHidden && (
-        <div
-          ref={annotationRef}
-          className="glimpse-review-annotation"
-          role="note"
-          data-placement={annotationPos?.placement}
-          style={{
-            left: `${annotationPos?.x ?? 0}px`,
-            top: `${annotationPos?.y ?? 0}px`,
-            opacity: annotationPos ? 1 : 0,
-          }}
-        >
-          <span
-            ref={annotationArrowRef}
-            className="glimpse-review-annotation-arrow"
-            aria-hidden="true"
-            style={{
-              left: annotationPos?.arrowX != null ? `${annotationPos.arrowX}px` : '',
-              top: annotationPos?.arrowY != null ? `${annotationPos.arrowY}px` : '',
-            }}
+      {!commentsHidden &&
+        annotations.map((annotation) => (
+          <AnnotationCard
+            key={annotation.id}
+            annotation={annotation}
+            frame={frameRef.current}
+            frameVersion={frameVersion}
+            onReply={appendAnnotationReply}
+            onDismiss={dismissAnnotation}
           />
-          <p>{annotation.text}</p>
-          {annotation.replies.length > 0 && (
-            <ol className="glimpse-review-annotation-replies">
-              {annotation.replies.map((reply, index) => (
-                <li key={`${index}:${reply}`} className="glimpse-review-annotation-reply">
-                  <strong>Reply {index + 1}</strong>
-                  <span>{reply}</span>
-                </li>
-              ))}
-            </ol>
-          )}
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              const form = event.currentTarget;
-              const reply = new FormData(form).get('reply');
-              if (typeof reply !== 'string' || !reply.trim()) return;
-              window.glimpse.send({
-                type: 'annotation-reply',
-                selector: annotation.selector,
-                annotation: annotation.text,
-                reply,
-                submittedAt: new Date().toISOString(),
-              });
-              form.reset();
-              setAnnotation((current) =>
-                current ? { ...current, replies: [...current.replies, reply] } : current
-              );
-            }}
-          >
-        <textarea name="reply" placeholder="Reply" />
-          <button type="submit">Reply</button>
-        </form>
-        </div>
-      )}
+        ))}
 
       {!commentsHidden && selection && !selectionCommentOpen && (
         <button
@@ -736,14 +743,14 @@ function App() {
         </aside>
       )}
 
-      {annotation && (
+      {annotations.length > 0 && (
         <button
           className="glimpse-review-comments-toggle"
           type="button"
           aria-pressed={commentsHidden}
           onClick={() => setCommentsHidden((value) => !value)}
         >
-          {commentsHidden ? 'Show comments' : 'Hide comments'}
+          {commentsHidden ? `Show comments (${annotations.length})` : 'Hide comments'}
         </button>
       )}
     </>

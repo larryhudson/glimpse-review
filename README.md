@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/glimpse-review.svg)](https://www.npmjs.com/package/glimpse-review)
 [![license](https://img.shields.io/npm/l/glimpse-review.svg)](./LICENSE)
 
-A small TypeScript CLI experiment built on top of [`glimpseui`](https://github.com/HazAT/glimpse).
+A small TypeScript CLI built on top of [`glimpseui`](https://github.com/HazAT/glimpse).
 
 The goal is to make agent/user interaction more contextual and lightweight. An agent can open a generated HTML explainer, review document, approval form, or small custom UI in a native Glimpse window, then receive structured feedback from the user without leaving the command flow.
 
@@ -26,6 +26,36 @@ npm install -g glimpse-review
 Requires Node.js 20+.
 
 For working on the CLI itself, see [Development](#development).
+
+## Agent Skill
+
+This package bundles an agent skill that documents when an agent should use the CLI, the normal review workflow, and how to interpret user feedback messages. Print the installed path with:
+
+```bash
+glimpse-review skill-path
+```
+
+This resolves correctly from any npm-linked or npm-installed location, so another tool can discover the bundled skill file without assuming the current working directory.
+
+Pairs nicely with [`nicobailon/visual-explainer`](https://github.com/nicobailon/visual-explainer) — generate a rich HTML explainer with that skill, then open and review it through `glimpse-review`.
+
+## Claude Code Plugin
+
+This repo also ships as a [Claude Code plugin marketplace](https://docs.claude.com/en/docs/claude-code/plugins) so the `glimpse-review` skill is available to Claude Code without copying `SKILL.md` by hand.
+
+```text
+/plugin marketplace add larryhudson/glimpse-review
+/plugin install glimpse-review@glimpse-review
+```
+
+Or point at a local checkout:
+
+```text
+/plugin marketplace add /path/to/glimpse-review
+/plugin install glimpse-review@glimpse-review
+```
+
+The plugin only registers the skill — you still need the `glimpse-review` binary on your PATH (`npm install -g glimpse-review`) for the skill's commands to run.
 
 ## Commands
 
@@ -145,40 +175,6 @@ glimpse-review eval "window.__glimpseReview.annotate('#note', 'Can you explain t
 
 This is the low-level escape hatch behind `annotate`.
 
-## Agent Skill
-
-This package includes an agent skill at `skills/glimpse-review/SKILL.md`. The skill documents when an agent should use the CLI, the normal review workflow, and how to interpret user feedback messages.
-
-Print the installed skill path:
-
-```bash
-glimpse-review skill-path
-```
-
-This works from an npm-linked or npm-installed package, so another tool can discover the bundled skill file without assuming the current working directory.
-
-Pairs nicely with [`nicobailon/visual-explainer`](https://github.com/nicobailon/visual-explainer) — generate a rich HTML explainer with that skill, then open and review it through `glimpse-review`.
-
-## Claude Code Plugin
-
-This repo also ships as a [Claude Code plugin marketplace](https://docs.claude.com/en/docs/claude-code/plugins). Installing the plugin makes the `glimpse-review` skill available to Claude Code without needing to copy SKILL.md by hand.
-
-Add the marketplace and install the plugin:
-
-```text
-/plugin marketplace add larryhudson/glimpse-review
-/plugin install glimpse-review@glimpse-review
-```
-
-Or point at a local checkout:
-
-```text
-/plugin marketplace add /path/to/glimpse-review
-/plugin install glimpse-review@glimpse-review
-```
-
-The plugin's skill folder is a symlink to `skills/` in this repo, so the published npm package and the Claude Code plugin share the same `SKILL.md`. The plugin only registers the skill — you still need the `glimpse-review` binary on your PATH (`npm install -g glimpse-review`) for the skill's commands to run.
-
 ## Development
 
 ```bash
@@ -201,4 +197,4 @@ In Vite dev mode, the shell stubs `window.glimpse` and loads `examples/approval-
 
 ## Architecture
 
-The Node CLI (`src/cli.ts` and friends) is intentionally separate from the Preact-based review shell (`src/review-shell/`). The shell is built with Vite into `dist/review-shell`; at runtime, `src/review-shell.ts` inlines the built HTML and JS before handing it to Glimpse. The bundled agent skill lives at `skills/glimpse-review/SKILL.md`.
+The Node CLI (`src/cli.ts` and friends) is intentionally separate from the Preact-based review shell (`src/review-shell/`). The shell is built with Vite into `dist/review-shell`; at runtime, `src/review-shell.ts` inlines the built HTML and JS before handing it to Glimpse. The bundled agent skill lives at `plugins/glimpse-review/skills/glimpse-review/SKILL.md` so it can be served by both the npm package and the Claude Code plugin.
