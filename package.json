@@ -1,6 +1,6 @@
 {
   "name": "glimpse-review",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A small CLI for opening lightweight HTML/Markdown review windows via Glimpse, collecting form input, annotations, and selection comments — designed for agent/user interaction.",
   "keywords": [
     "glimpse",
