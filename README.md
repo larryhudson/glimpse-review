@@ -14,6 +14,8 @@ It supports a few related workflows:
 - live-reload file-backed review pages when the source changes
 - avoid auto-refreshing while the user has dirty form input
 
+Pairs nicely with [`nicobailon/visual-explainer`](https://github.com/nicobailon/visual-explainer) — generate a rich HTML explainer with that skill, then open and review it through `glimpse-review`.
+
 ## Install
 
 ```bash
