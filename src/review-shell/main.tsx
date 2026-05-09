@@ -11,6 +11,7 @@ import {
 import {
   closestElement,
   elementReference,
+  selectionContextElement,
   shellRectForElement,
   shellRectForRange,
 } from './positioning.js';
@@ -326,7 +327,7 @@ function App() {
 
         setSelection({
           text,
-          element: elementReference(closestElement(range.commonAncestorContainer)),
+          element: elementReference(selectionContextElement(range)),
           range,
           rect,
         });

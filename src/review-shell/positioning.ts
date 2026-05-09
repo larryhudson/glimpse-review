@@ -4,6 +4,10 @@ export function closestElement(node: Node | null): Element | null {
   return node.parentElement;
 }
 
+export function selectionContextElement(range: Range): Element | null {
+  return closestElement(range.startContainer);
+}
+
 export function elementReference(element: Element | null) {
   if (!element) return null;
   return {
