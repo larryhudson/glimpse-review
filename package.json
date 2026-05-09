@@ -29,7 +29,7 @@
   "files": [
     "dist",
     "examples",
-    "skills",
+    "plugins/glimpse-review",
     "README.md",
     "LICENSE"
   ],

@@ -24,7 +24,7 @@ function addWindowOptions(command: Command): Command {
 }
 
 function skillPath(): string {
-  return fileURLToPath(new URL('../skills/glimpse-review/SKILL.md', import.meta.url));
+  return fileURLToPath(new URL('../plugins/glimpse-review/skills/glimpse-review/SKILL.md', import.meta.url));
 }
 
 async function main(): Promise<void> {
