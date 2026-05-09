@@ -17,56 +17,27 @@ It supports a few related workflows:
 - live-reload file-backed review pages when the source changes
 - avoid auto-refreshing while the user has dirty form input
 
-Pairs nicely with [`nicobailon/visual-explainer`](https://github.com/nicobailon/visual-explainer) — generate a rich HTML explainer with that skill, then open and review it through `glimpse-review`.
-
 ## Install
 
 ```bash
 npm install -g glimpse-review
 ```
 
-This installs the `glimpse-review` binary globally. Requires Node.js 20+.
+Requires Node.js 20+. Or run without installing: `npx glimpse-review --help`.
 
-Or run it without installing:
-
-```bash
-npx glimpse-review --help
-```
-
-To install from source for development:
-
-```bash
-git clone https://github.com/larryhudson/glimpse-review.git
-cd glimpse-review
-npm install
-npm run build
-npm link
-```
-
-`npm run build` compiles the Node CLI with TypeScript and bundles the review shell with Vite. `npm link` makes the local `glimpse-review` binary available on your PATH.
+For working on the CLI itself, see [Development](#development).
 
 ## Commands
 
-```bash
-glimpse-review --help
-```
-
-Available commands:
-
 ```text
-show [options] [file]
-review [options] [file]
-eval <javascript...>
-annotate <selector> <text...>
-skill-path
+show [options] [file]        one-shot HTML/Markdown display, captures form submit
+review [options] [file]      persistent review window with comments + annotations
+annotate <selector> <text>   attach a floating comment to an element
+eval <javascript...>         run JS in the active review shell
+skill-path                   print the path to the bundled agent skill
 ```
 
-`show` and `review` accept `.html` and `.md` file paths:
-
-```text
-show [options] [file.md]
-review [options] [file.md]
-```
+`show` and `review` accept `.html` and `.md` file paths.
 
 ## Show HTML
 
@@ -120,15 +91,7 @@ When reviewing a file path, the process watches the file for changes.
 
 Submitting the reviewed page's form sends the user's answers back to the agent and closes the review process.
 
-## Review Markdown
-
-Pass a `.md` file to render it as HTML on the fly:
-
-```bash
-glimpse-review review README.md
-```
-
-Markdown files use the same review shell as HTML files, so highlighting, annotations, selection comments, live reload, and dirty-form refresh behavior all work the same way. The conversion is path-based; piped stdin is currently treated as raw HTML.
+Pass a `.md` file (e.g. `glimpse-review review README.md`) to render Markdown as HTML on the fly using the same review shell. Piped stdin is treated as raw HTML.
 
 ## Annotate
 
@@ -194,6 +157,8 @@ glimpse-review skill-path
 
 This works from an npm-linked or npm-installed package, so another tool can discover the bundled skill file without assuming the current working directory.
 
+Pairs nicely with [`nicobailon/visual-explainer`](https://github.com/nicobailon/visual-explainer) — generate a rich HTML explainer with that skill, then open and review it through `glimpse-review`.
+
 ## Claude Code Plugin
 
 This repo also ships as a [Claude Code plugin marketplace](https://docs.claude.com/en/docs/claude-code/plugins). Installing the plugin makes the `glimpse-review` skill available to Claude Code without needing to copy SKILL.md by hand.
@@ -216,68 +181,24 @@ The plugin's skill folder is a symlink to `skills/` in this repo, so the publish
 
 ## Development
 
-Type-check:
+```bash
+git clone https://github.com/larryhudson/glimpse-review.git
+cd glimpse-review
+npm install
+npm run build   # tsc + vite build of the review shell
+npm link        # makes glimpse-review available on PATH
+```
+
+Other useful commands:
 
 ```bash
 npm run typecheck
+npm run glimpse -- --help                                          # run without linking
+npm exec vite -- --config vite.review-shell.config.ts --host 127.0.0.1  # debug the shell in a browser at http://127.0.0.1:5173/
 ```
 
-Build:
-
-```bash
-npm run build
-```
-
-Link the binary locally:
-
-```bash
-npm link
-glimpse-review --help
-```
-
-Or run it without linking:
-
-```bash
-npm run glimpse -- --help
-```
-
-Run the review shell in a browser for debugging:
-
-```bash
-npm exec vite -- --config vite.review-shell.config.ts --host 127.0.0.1
-```
-
-Then open:
-
-```text
-http://127.0.0.1:5173/
-```
-
-In Vite dev mode, the shell stubs `window.glimpse` and loads `examples/approval-form.html` automatically so the UI can be inspected in a normal browser.
+In Vite dev mode, the shell stubs `window.glimpse` and loads `examples/approval-form.html` so the UI can be inspected in a normal browser.
 
 ## Architecture
 
-The Node CLI is intentionally separate from the review UI.
-
-Node-side files:
-
-- `src/cli.ts` wires Commander commands.
-- `src/show.ts` implements one-shot HTML/form display.
-- `src/review.ts` starts the persistent review process, local socket, file watcher, and Glimpse window.
-- `src/review-client.ts` sends `eval` and `annotate` commands to the active review window.
-
-Browser shell files:
-
-- `src/review-shell/index.html` is the shell document.
-- `src/review-shell/main.tsx` is the Preact review app.
-- `src/review-shell/positioning.ts` contains iframe geometry helpers.
-
-Agent skill files:
-
-- `skills/glimpse-review/SKILL.md` documents how agents should use the CLI.
-
-The shell is built with Vite into `dist/review-shell`. At runtime, `src/review-shell.ts` reads the built HTML and JavaScript and inlines the script before sending the shell to Glimpse.
-
-## Notes
-
-This is still a prototype CLI, but it is wired as a Node binary. Run `npm run build` before using `npm link` or `npm run glimpse`.
+The Node CLI (`src/cli.ts` and friends) is intentionally separate from the Preact-based review shell (`src/review-shell/`). The shell is built with Vite into `dist/review-shell`; at runtime, `src/review-shell.ts` inlines the built HTML and JS before handing it to Glimpse. The bundled agent skill lives at `skills/glimpse-review/SKILL.md`.
