@@ -23,7 +23,7 @@ It supports a few related workflows:
 npm install -g glimpse-review
 ```
 
-Requires Node.js 20+. Or run without installing: `npx glimpse-review --help`.
+Requires Node.js 20+.
 
 For working on the CLI itself, see [Development](#development).
 
