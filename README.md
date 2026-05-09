@@ -194,6 +194,26 @@ glimpse-review skill-path
 
 This works from an npm-linked or npm-installed package, so another tool can discover the bundled skill file without assuming the current working directory.
 
+## Claude Code Plugin
+
+This repo also ships as a [Claude Code plugin marketplace](https://docs.claude.com/en/docs/claude-code/plugins). Installing the plugin makes the `glimpse-review` skill available to Claude Code without needing to copy SKILL.md by hand.
+
+Add the marketplace and install the plugin:
+
+```text
+/plugin marketplace add larryhudson/glimpse-review
+/plugin install glimpse-review@glimpse-review
+```
+
+Or point at a local checkout:
+
+```text
+/plugin marketplace add /path/to/glimpse-review
+/plugin install glimpse-review@glimpse-review
+```
+
+The plugin's skill folder is a symlink to `skills/` in this repo, so the published npm package and the Claude Code plugin share the same `SKILL.md`. The plugin only registers the skill — you still need the `glimpse-review` binary on your PATH (`npm install -g glimpse-review`) for the skill's commands to run.
+
 ## Development
 
 Type-check:

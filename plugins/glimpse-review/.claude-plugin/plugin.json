@@ -1,0 +1,11 @@
+{
+  "name": "glimpse-review",
+  "description": "Open lightweight HTML/Markdown review windows, collect form input, annotations, and contextual comments via the Glimpse Review CLI.",
+  "version": "0.1.2",
+  "author": {
+    "name": "Larry Hudson"
+  },
+  "homepage": "https://github.com/larryhudson/glimpse-review#readme",
+  "repository": "https://github.com/larryhudson/glimpse-review",
+  "license": "MIT"
+}

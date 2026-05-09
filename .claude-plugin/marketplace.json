@@ -1,0 +1,14 @@
+{
+  "name": "glimpse-review",
+  "owner": {
+    "name": "Larry Hudson"
+  },
+  "description": "Marketplace for the Glimpse Review plugin",
+  "plugins": [
+    {
+      "name": "glimpse-review",
+      "source": "./plugins/glimpse-review",
+      "description": "Open lightweight HTML/Markdown review windows, collect form input, annotations, and contextual comments via the Glimpse Review CLI."
+    }
+  ]
+}
