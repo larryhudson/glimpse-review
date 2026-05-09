@@ -1,0 +1,58 @@
+{
+  "name": "glimpse-review",
+  "version": "0.1.0",
+  "description": "A small CLI for opening lightweight HTML/Markdown review windows via Glimpse, collecting form input, annotations, and selection comments — designed for agent/user interaction.",
+  "keywords": [
+    "glimpse",
+    "review",
+    "cli",
+    "agent",
+    "annotations",
+    "preact",
+    "markdown",
+    "html"
+  ],
+  "author": "Larry Hudson",
+  "license": "MIT",
+  "homepage": "https://github.com/larryhudson/glimpse-review#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/larryhudson/glimpse-review.git"
+  },
+  "bugs": {
+    "url": "https://github.com/larryhudson/glimpse-review/issues"
+  },
+  "type": "module",
+  "bin": {
+    "glimpse-review": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "examples",
+    "skills",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc && vite build --config vite.review-shell.config.ts",
+    "glimpse": "node dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@floating-ui/dom": "^1.7.6",
+    "commander": "^14.0.3",
+    "glimpseui": "^0.8.0",
+    "marked": "^18.0.3",
+    "preact": "^10.29.1",
+    "vite": "^8.0.11"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.5",
+    "@types/node": "^25.6.2",
+    "typescript": "^6.0.3"
+  }
+}
