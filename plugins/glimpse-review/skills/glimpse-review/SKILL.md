@@ -10,11 +10,12 @@ The CLI binary is `glimpse-review`.
 
 ## Workflow
 
-    1. glimpse-review review <file.html|file.md>              # open a persistent review window
-    2. glimpse-review annotate <selector> "<question>"        # point at a specific element and ask a question
-    3. Wait for selection comments or annotation replies       # poll the running process output
-    4. Edit the source file if the user asks for changes        # review window live-reloads file-backed content
-    5. Continue the discussion until the review is resolved
+    1. Start glimpse-review review <file.html|file.md> as a background/long-running tool session
+    2. Keep the returned session id so you can poll the process output for comments
+    3. glimpse-review annotate <selector> "<question>"        # point at a specific element and ask a question
+    4. Wait for selection comments or annotation replies       # poll the running review session output
+    5. Edit the source file if the user asks for changes        # review window live-reloads file-backed content
+    6. Continue the discussion until the review is resolved
 
 For one-shot form prompts:
 
@@ -30,6 +31,8 @@ For one-shot form prompts:
     glimpse-review review [options] [file]
 
 Use `review` for collaborative discussion. It opens a persistent review shell and renders the supplied HTML or `.md` file inside an iframe.
+
+Run `review` as a background/long-running tool session, not as a foreground command that blocks the conversation. The command stays alive so it can print JSON messages for selection comments and annotation replies. If the foreground command is interrupted, you may lose the process handle and no longer be able to read the user's submitted comments.
 
 Common options:
 
@@ -92,7 +95,7 @@ Prints the absolute path to this `SKILL.md` file. Use this when another tool nee
 
 ## Receiving User Input
 
-The running `review` or `show` process prints JSON messages to stdout. Poll the process output after the user says they submitted feedback.
+The running `review` or `show` process prints JSON messages to stdout. For `review`, keep the background session id and poll that process output after the user says they submitted feedback. Do not assume comments are available anywhere else if the review process was interrupted or replaced.
 
 Selection comments look like:
 
