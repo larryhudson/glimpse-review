@@ -1,17 +1,21 @@
 import { defineConfig } from 'vite';
 import preact from '@preact/preset-vite';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+
+const devSample = process.env.GLIMPSE_DEV_SAMPLE
+  ? resolve(process.env.GLIMPSE_DEV_SAMPLE)
+  : resolve('examples/approval-form.html');
 
 export default defineConfig({
   root: 'src/review-shell',
   base: './',
   plugins: [preact()],
   define: {
-    __DEV_SAMPLE_PATH__: JSON.stringify(`/@fs/${resolve('examples/approval-form.html')}`),
+    __DEV_SAMPLE_PATH__: JSON.stringify(`/@fs/${devSample}`),
   },
   server: {
     fs: {
-      allow: ['../..'],
+      allow: ['../..', dirname(devSample)],
     },
   },
   css: {

@@ -159,8 +159,11 @@ function contentWithReviewHelpers(html: string): string {
   if (html.includes('data-glimpse-review-hash-link-helper')) return html;
 
   const helper = HASH_LINK_HELPER.replace('<script>', '<script data-glimpse-review-hash-link-helper>');
-  if (/<\/body>/i.test(html)) {
-    return html.replace(/<\/body>/i, `${helper}</body>`);
+  const match = html.match(/<\/body\s*>/gi);
+  if (match) {
+    const last = match[match.length - 1];
+    const idx = html.lastIndexOf(last);
+    return `${html.slice(0, idx)}${helper}${html.slice(idx)}`;
   }
 
   return `${html}${helper}`;
